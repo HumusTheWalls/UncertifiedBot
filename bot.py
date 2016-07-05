@@ -17,9 +17,6 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
-###### INSTALL REGEX (Regex 2016.6.24)
-## Remove attorney list loading...
-## Attorneys now exist only as slaves to cases
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -36,6 +33,7 @@ simplefilter("ignore", ResourceWarning)
  # LATEST ERROR #
 ################
 # Saving apparently random attorney lists to caseData.txt
+# Check caseData.txt against log.txt
 
 
 # ATTEMPT 1 at verdict
