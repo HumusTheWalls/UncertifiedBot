@@ -4,7 +4,7 @@ import sys
 import regex #Best regex tester for indev package: www.regex101.com
 
 import config
-
+ 
 # No need to be explicit...
 from Classes import *
 
