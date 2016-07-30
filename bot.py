@@ -1,6 +1,7 @@
 import praw
 import time
 import sys
+import os
 import regex #Best regex tester for indev package: www.regex101.com
 
 import config
@@ -17,6 +18,7 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
+# Set up delete_data() sys.argv[1]?
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -32,8 +34,10 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-# Saving apparently random attorney lists to caseData.txt
+# Saving cumulative lists to casteData.txt
 # Check caseData.txt against log.txt
+# Error occurs before Case generation
+# Only cumulative for valid cases
 
 
 # ATTEMPT 1 at verdict
@@ -124,6 +128,17 @@ def manual_run():
 # Use in conjuction with Invalid Cases
 def recheck():
   pass
+
+def delete_data():
+  try:
+    os.remove(config.attorney_data)
+    os.remove(config.case_data)
+    os.remove(config.invalid_data)
+    os.remove(config.log_file)
+  except OSError as ose:
+    raise ose
+  return
+      
 
 def login():
   ### Logs into reddit
@@ -222,7 +237,8 @@ def make_attorneys(names, attorneys):
         newAttorney = attorney
         break
     if newAttorney is None:
-      new_attorneys.append(Attorney((name)))
+      newAttorney = Attorney(name)
+    new_attorneys.append(newAttorney)
   return new_attorneys
 
 def find_verdict_in(judgements):
@@ -316,10 +332,15 @@ if __name__ == "__main__":
   try:
     if len(sys.argv) is 1:
       run_cycle()
+    elif sys.argv[1] is "delete":
+      delete_data()
+      run_cycle()
     elif sys.argv[1] is "check":
       manual_run()
     elif sys.argv[1] is "retry":
       recheck()
+    else:
+      print ("\""+sys.argv[1]+"\" is not a valid argument.")
   except KeyboardInterrupt as e:
     #flush log and exit
     print (log)
