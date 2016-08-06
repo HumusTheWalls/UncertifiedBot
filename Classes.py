@@ -1,11 +1,4 @@
 class Case:
-  name = "" #e.g.: 14KCC-09-1c3lg4
-  verdict = None #Overall result of case: True = guilty, False = innocent, None = no result
-  charges = [] #Will include name of charge and charge verdict in tuple form
-  jury = []
-  defense = []
-  prosecution = []
-  judge = []
   
   @staticmethod
   def make(data, case_list):
@@ -205,12 +198,6 @@ class Invalid(Case):
     return self.name
 
 class Attorney:
-  name = ""
-  # Cases record - Tracks list of cases participated in
-  wins = []
-  loses = []
-  judgements = []
-  jury_duty = []
   
   @staticmethod
   def make(data, attorney_list):

@@ -60,7 +60,7 @@ def run_cycle():
   log += "Logging in to /u/UncertifiedBot.  \n"
   bot = login()
   log += "...logged in.  \n" #Log will attempt to send if error is encountered
-  log += "Secriterrifying.  \n"
+  log += "Secreterrifying.  \n"
   case_list = load(config.case_data)
   if case_list:
     for case in case_list:
@@ -90,6 +90,9 @@ def run_cycle():
       if roster[3]: #Jury
         log += "    --Jury          : {}  \n".format(roster[3])
       continue
+        #############################
+       # Handle Invalid Cases Here #
+      #############################
     #Valid post --> create case
     case = Case((post_name))
     case_list.append(case)
