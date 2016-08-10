@@ -18,7 +18,6 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
-# Set up delete_data() sys.argv[1]?
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -57,6 +56,7 @@ def run_cycle():
   global attorney_list
   global case_list
   global invalid_list
+  log += "Running with sub-arguments {}  \n".format(sys.argv[1:])
   log += "Logging in to /u/UncertifiedBot.  \n"
   bot = login()
   log += "...logged in.  \n" #Log will attempt to send if error is encountered
@@ -111,9 +111,6 @@ def run_cycle():
     judgements = find_statements_from(roster[2], comments)
     raw_verdict = find_verdict_in(judgements)
     log += "    Verdict: "+str(raw_verdict)+"  \n"
-      #############################
-     # Handle Invalid Cases Here #
-    #############################
     case.resolve(True if raw_verdict is "Guilty" else False if raw_verdict is "Innocent" else None)
   log += "Logging off.  \n"
   log += "...writing changes  \n"
@@ -135,13 +132,22 @@ def recheck():
 def delete_data():
   try:
     os.remove(config.attorney_data)
+    
+  except FileNotFoundError as fnfe:
+    pass
+  try:
     os.remove(config.case_data)
+  except FileNotFoundError as fnfe:
+    pass
+  try:
     os.remove(config.invalid_data)
+  except FileNotFoundError as fnfe:
+    pass
+  try:
     os.remove(config.log_file)
-  except OSError as ose:
-    raise ose
+  except FileNotFoundError as fnfe:
+    pass
   return
-      
 
 def login():
   ### Logs into reddit
@@ -335,7 +341,7 @@ if __name__ == "__main__":
   try:
     if len(sys.argv) is 1:
       run_cycle()
-    elif sys.argv[1] is "delete":
+    elif sys.argv[1] == "delete":
       delete_data()
       run_cycle()
     elif sys.argv[1] is "check":

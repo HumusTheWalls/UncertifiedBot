@@ -125,46 +125,46 @@ class Case:
       string += self.name
       return string
     #VERDICT
-    if type is "verdict":
+    elif type is "verdict":
       string += str(self.verdict)
       return string
     #CHARGES
-    if type is "charges":
+    elif type is "charges":
       for charge in self.charges:
         string += charge.replace('&',';').replace(';',' ')+" & " #charges are full sentences with possible '&' and ';'
-      if self.charges:
+      if self.charges: #removes final " & "
         string = string[:-3]
       return string
     #DEFENSE
-    if type is "defense":
+    elif type is "defense":
       for defender in self.defense:
         string += defender+" & "
-      if self.defense:
+      if self.defense: #removes final " & "
         string = string[:-3]
       return string
     #PROSECUTION
-    if type is "prosecution":
+    elif type is "prosecution":
       for prosecutor in self.prosecution:
         string += prosecutor+" & "
-      if self.prosecution:
+      if self.prosecution: #removes final " & "
         string = string[:-3]
       return string
     #JUDGE
-    if type is "judge":
+    elif type is "judge":
       for judger in self.judge:
         string += judger+" & "
-      if self.judge:
+      if self.judge: #removes final " & "
         string = string[:-3]
       return string
     #JURY
-    if type is "jury":
+    elif type is "jury":
       for juror in self.jury:
         string += juror+" & "
-      if self.jury:
+      if self.jury: #removes final " & "
         string = string[:-3]
       return string
     #FILE
-    if type is "file":
+    elif type is "file":
       string += self.report("name")+";"
       string += self.report("verdict")+";"
       string += self.report("charges")+";"
@@ -232,20 +232,22 @@ class Attorney:
     ### Reports information about attorney
       # depending on the type requested
       # Error handling is very primitive.
+    string = ""
     if type is "name":
-      return self.name
-    if type is "wins":
-      return str(self.wins)[1:-1]
-    if type is "loses":
-      return str(self.loses)[1:-1]
-    if type is "judgements":
-      return str(self.judgements)[1:-1]
-    if type is "jury":
-      return str(self.jury_duty)[1:-1]
-    if type is "file":
-      return "%s;%s;%s;%s;%s\n" % (self.report("name"),self.report("wins"),self.report("loses"),self.report("judgements"),self.report("jury"))
+      string += self.name
+    elif type is "wins":
+      string += str(self.wins)[1:-1]
+    elif type is "loses":
+      string += str(self.loses)[1:-1]
+    elif type is "judgements":
+      string += str(self.judgements)[1:-1]
+    elif type is "jury":
+      string += str(self.jury_duty)[1:-1]
+    elif type is "file":
+      string += "%s;%s;%s;%s;%s\n" % (self.report("name"),self.report("wins"),self.report("loses"),self.report("judgements"),self.report("jury"))
     else:
-      return "OMG AN ERROR KILL IT WITH FIRE!!!"
+      string += "OMG AN ERROR KILL IT WITH FIRE!!!"
+    return string
 
 
 #
