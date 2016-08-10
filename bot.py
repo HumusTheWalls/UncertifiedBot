@@ -18,6 +18,7 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
+# Fix Latest Error
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -94,9 +95,11 @@ def run_cycle():
        # Handle Invalid Cases Here #
       #############################
     #Valid post --> create case
-    case = Case((post_name))
+    case = None
+    case = Case([post_name])
     case_list.append(case)
     # find or create attorney records
+    log += ("    "+post_name+" is not alone.  \n" if len(case.defense)>0 else "")
     case.set_defense(make_attorneys(roster[0], attorney_list))
     case.set_prosecution(make_attorneys(roster[1], attorney_list))
     case.set_judge(make_attorneys(roster[2], attorney_list))
@@ -116,6 +119,8 @@ def run_cycle():
   log += "...writing changes  \n"
   #Save all changes to Lawyer and Case lists
   save(attorney_list, config.attorney_data)
+  for case in case_list:
+    log += case.report("name")+"  \n"
   save(case_list, config.case_data)
   save(invalid_list, config.invalid_data)
   log += "...sending logs  \n"

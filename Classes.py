@@ -13,29 +13,24 @@ class Case:
       # Raise new error to give better description of issue
       raise InitError("Case was not created: "+ne.strerror)
   
-  def __init__(self, *name, verdict=None, charges=[],jury=[], defense=[], prosecution=[], judge=[]):
+  def __init__(self, name, verdict=None, charges=[],jury=[], defense=[], prosecution=[], judge=[]):
     ### Case initialization
-      # Cases need a minimum of a name to be initialized
+      # Cases need a minimum of a name
+      # passed in list form to be initialized
       # but all members can be passed for loading of
       # a pre-existing case.
-      # Note: Initializations will either be Case("name") or Case(*all)
+      # Note: Initializations will either be Case(["name"]) or Case(*all)
       # Piecemeal initializations should not occur
     if type(name) is list:
       self.name = name[0]
-      self.verdict = name[1] if len(name) > 1 else verdict
-      self.charges = name[2] if len(name) > 2 else charges
-      self.jury = name[3] if len(name) > 3 else jury
-      self.defense = name[4] if len(name) > 4 else defense
-      self.prosecution = name[5] if len(name) > 5 else prosecution
-      self.judge = name[6] if len(name) > 6 else judge
+      self.verdict = name[1] if len(name) > 1 else None
+      self.charges = name[2] if len(name) > 2 else []
+      self.jury = name[3] if len(name) > 3 else []
+      self.defense = name[4] if len(name) > 4 else []
+      self.prosecution = name[5] if len(name) > 5 else []
+      self.judge = name[6] if len(name) > 6 else []
     else:
-      self.name = str(name)
-      self.verdict = verdict
-      self.charges = charges
-      self.jury = jury
-      self.defense = defense
-      self.prosecution = prosecution
-      self.judge = judge
+      raise InitError()
   
   def resolve(self, verdict):
     ### Processes the verdict of the case forcefully by
@@ -122,7 +117,7 @@ class Case:
     string = ""
     #NAME
     if type is "name":
-      string += self.name
+      string += str(self.name)
       return string
     #VERDICT
     elif type is "verdict":
