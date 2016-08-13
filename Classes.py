@@ -30,7 +30,7 @@ class Case:
       self.prosecution = name[5] if len(name) > 5 else []
       self.judge = name[6] if len(name) > 6 else []
     else:
-      raise InitError()
+      raise NameError(str(name[0]))
   
   def resolve(self, verdict):
     ### Processes the verdict of the case forcefully by
@@ -102,12 +102,15 @@ class Case:
     attorneys.extend(self.prosecution)
     attorneys.extend(self.judge)
     attorneys.extend(self.jury)
+    # Remove all empty attorneys (from unfilled categories like "jury")
+    attorneys = filter(None, attorneys)
     
     for attorney in archived_attorneys:
       if attorney.name in attorneys:
         attorneys.remove(attorney.name) #attorney already exists
     for name in attorneys:
-      Attorney.make((name), archived_attorneys)
+      print("Currently making "+name+" an attorney.")
+      Attorney.make([name], archived_attorneys)
   
   def report(self, type="name"):
     ### Returns information about the case
@@ -207,7 +210,7 @@ class Attorney:
       # Raise new error to give better description of issue
       raise InitError("Attorney was not created: "+ne.strerror)
 
-  def __init__(self, *stats):
+  def __init__(self, stats):
     ### Attorney initialization
       # Requires a valid name at a minimum
       # Handled differently than Case initialization
@@ -229,7 +232,7 @@ class Attorney:
       # Error handling is very primitive.
     string = ""
     if type is "name":
-      string += self.name
+      string += str(self.name)
     elif type is "wins":
       string += str(self.wins)[1:-1]
     elif type is "loses":

@@ -18,7 +18,7 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
-# Fix Latest Error
+# Fix case loading
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -34,10 +34,14 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-# Saving cumulative lists to casteData.txt
-# Check caseData.txt against log.txt
-# Error occurs before Case generation
-# Only cumulative for valid cases
+# Traceback (most recent call last):
+#  File "bot.py", line 349, in <module>
+#    run_cycle()
+#  File "bot.py", line 65, in run_cycle
+#    case.certify_attorneys(attorney_list)
+#  File "/home/humusthewalls/UncertifiedBot/Classes.py", line 110, in certify_attorneys
+#    attorneys.remove(attorney.name) #attorney already exists
+#AttributeError: 'filter' object has no attribute 'remove'
 
 
 # ATTEMPT 1 at verdict
@@ -74,8 +78,8 @@ def run_cycle():
     post_name = "{1}KCC-{2}-{0}".format(post.short_link[15:],post_date[6:],post_date[:2])
     log += "   Post [{0}]({1})  \n".format(post_name,post.short_link)
     # If case already in case list, skip case
-    #if case.name for case in case_list is post_name:
-      #continue
+    if case_exists(post_name, case_list):
+      continue
     roster = find_actors_in(post)
     #If no defense/prosecution/judge, case is invalid
     if not (roster[0] and roster[1] and roster[2]):
@@ -119,8 +123,6 @@ def run_cycle():
   log += "...writing changes  \n"
   #Save all changes to Lawyer and Case lists
   save(attorney_list, config.attorney_data)
-  for case in case_list:
-    log += case.report("name")+"  \n"
   save(case_list, config.case_data)
   save(invalid_list, config.invalid_data)
   log += "...sending logs  \n"
@@ -187,6 +189,12 @@ def fetch_posts(bot):
     # once I figured out the syntax for the call
   subreddit = bot.get_subreddit("KarmaCourt")
   return subreddit.get_top_from_all(limit=config.batch_size)
+  
+def case_exists(name, cases):
+  for case in cases:
+    if name is case.report("name"):
+      return True
+  return False
 
 def fetch_comments_from(submission):
   ### Returns a flattened tree of comments
@@ -292,8 +300,6 @@ def save(saveable_list, filename):
         file.write(saveable_list[0].__class__.__name__+"\n")
         for item in saveable_list:
           file.write(item.report("file"))
-        file.seek(-1,2)
-        file.truncate()
       else:
         raise IOError() #Hackish: no saveable data to write.
   except IOError as IOE:
@@ -319,12 +325,12 @@ def load(filename):
       lines = file.readlines()
       if lines is not None and len(lines) > 1:
         if Case.__name__ in lines[0]:
-          for line in lines[1:]:
+          for line in lines[1:-1]:
             case_info = line[:-1].split(';')
-            for i in range(2,7): # 2-6 are all potential lists separated by ' & '
+            for i in range(2,7): # 2-7 are all potential lists separated by ' & '
               case_info[i] = case_info[i].split(' & ')
             try:
-              loaded.append(Case.make(case_info, case_list))
+              Case.make(case_info, loaded)
             except InitError as ie:
               log += ie.strerror+"  \n"
         elif Invalid.__name__ in lines[0]: # <-- turned this into a class. Still unplanned
@@ -335,11 +341,13 @@ def load(filename):
             except InitError as ie:
               log += ie.strerror+"  \n"
         else:
-          raise IOError() #Hackish, but gets to the except block and warns that the file was not loaded
+          raise InitError("No valid class to load.")
       else:
-        raise IOError() #No first line, clearly cannot load file
-  except IOError as IOE:
-    log += "Warning: "+filename+" could not be loaded. Using empty list instead.  \n"
+        raise InitError("No class type was provided.")
+  except (InitError, FileNotFoundError) as oops:
+    log += "Warning: "+filename+" could not be loaded: "+oops.strerror+"  \n Using empty list instead.  \n"
+  for case in loaded:
+    print(case.report("file"))
   return loaded
 
 if __name__ == "__main__":
