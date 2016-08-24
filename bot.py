@@ -18,7 +18,6 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
-# Fix case loading
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -100,6 +99,7 @@ def run_cycle():
       #############################
     #Valid post --> create case
     case = None
+    # Name must be passed as 1-element list, as per Case.__init__()
     case = Case([post_name])
     case_list.append(case)
     # find or create attorney records
@@ -259,7 +259,8 @@ def make_attorneys(names, attorneys):
         newAttorney = attorney
         break
     if newAttorney is None:
-      newAttorney = Attorney(name)
+      # Name must be passed as 1-element list, as per Attorney.__init__()
+      newAttorney = Attorney([name])
     new_attorneys.append(newAttorney)
   return new_attorneys
 
