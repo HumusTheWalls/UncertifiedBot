@@ -97,17 +97,20 @@ class Case:
       # in the attorney_data file from config
       # Main purpose of this function
       # is for file-loaded cases
+    print("Case "+self.name+":")
     attorneys = []
     attorneys.extend(self.defense)
     attorneys.extend(self.prosecution)
     attorneys.extend(self.judge)
     attorneys.extend(self.jury)
-    # Remove all empty attorneys (from unfilled categories like "jury")
-    attorneys = filter(None, attorneys)
+    print("Potential attorneys: "+str(attorneys))
     
     for attorney in archived_attorneys:
       if attorney.name in attorneys:
+        print("Attorney "+attorney.name+" already exists.")
         attorneys.remove(attorney.name) #attorney already exists
+    # Remove all empty attorneys (from unfilled categories like "jury")
+    attorneys = filter(None, attorneys)
     for name in attorneys:
       print("Currently making "+name+" an attorney.")
       Attorney.make([name], archived_attorneys)

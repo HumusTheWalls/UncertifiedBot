@@ -33,14 +33,9 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-# Traceback (most recent call last):
-#  File "bot.py", line 349, in <module>
-#    run_cycle()
-#  File "bot.py", line 65, in run_cycle
-#    case.certify_attorneys(attorney_list)
-#  File "/home/humusthewalls/UncertifiedBot/Classes.py", line 110, in certify_attorneys
-#    attorneys.remove(attorney.name) #attorney already exists
-#AttributeError: 'filter' object has no attribute 'remove'
+# Only creates atterneys for first case saved
+# Saving duplicate cases
+# wierdness with load()?
 
 
 # ATTEMPT 1 at verdict
@@ -66,6 +61,7 @@ def run_cycle():
   log += "...logged in.  \n" #Log will attempt to send if error is encountered
   log += "Secreterrifying.  \n"
   case_list = load(config.case_data)
+  print("Case list:\n"+str(case_list))
   if case_list:
     for case in case_list:
       case.certify_attorneys(attorney_list)
