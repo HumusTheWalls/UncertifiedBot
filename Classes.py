@@ -13,7 +13,7 @@ class Case:
       # Raise new error to give better description of issue
       raise InitError("Case was not created: "+ne.strerror)
   
-  def __init__(self, name, verdict=None, charges=[],jury=[], defense=[], prosecution=[], judge=[]):
+  def __init__(self, data):
     ### Case initialization
       # Cases need a minimum of a name
       # passed in list form to be initialized
@@ -21,16 +21,25 @@ class Case:
       # a pre-existing case.
       # Note: Initializations will either be Case(["name"]) or Case(*all)
       # Piecemeal initializations should not occur
-    if type(name) is list:
-      self.name = name[0]
-      self.verdict = name[1] if len(name) > 1 else None
-      self.charges = name[2] if len(name) > 2 else []
-      self.jury = name[3] if len(name) > 3 else []
-      self.defense = name[4] if len(name) > 4 else []
-      self.prosecution = name[5] if len(name) > 5 else []
-      self.judge = name[6] if len(name) > 6 else []
+    if type(data) is list:
+      self.name = data[0]
+      self.verdict = data[1] if len(data) > 1 else None
+      self.charges = data[2] if len(data) > 2 else []
+      self.jury = data[3] if len(data) > 3 else []
+      self.defense = data[4] if len(data) > 4 else []
+      self.prosecution = data[5] if len(data) > 5 else []
+      self.judge = data[6] if len(data) > 6 else []
+    #Cloning used for Invalid initialization
+    elif isinstance(data, Case):
+      self.name = data.name
+      self.verdict = data.verdict
+      self.charges = data.charges
+      self.jury = data.jury
+      self.defense = data.defense
+      self.prosecution = data.prosecution
+      self.judge = data.judge
     else:
-      raise NameError(str(name[0]))
+      raise NameError(str(data[0]))
   
   def resolve(self, verdict):
     ### Processes the verdict of the case forcefully by
@@ -97,22 +106,18 @@ class Case:
       # in the attorney_data file from config
       # Main purpose of this function
       # is for file-loaded cases
-    print("Case "+self.name+":")
     attorneys = []
     attorneys.extend(self.defense)
     attorneys.extend(self.prosecution)
     attorneys.extend(self.judge)
     attorneys.extend(self.jury)
-    print("Potential attorneys: "+str(attorneys))
     
     for attorney in archived_attorneys:
       if attorney.name in attorneys:
-        print("Attorney "+attorney.name+" already exists.")
         attorneys.remove(attorney.name) #attorney already exists
     # Remove all empty attorneys (from unfilled categories like "jury")
     attorneys = filter(None, attorneys)
     for name in attorneys:
-      print("Currently making "+name+" an attorney.")
       Attorney.make([name], archived_attorneys)
   
   def report(self, type="name"):
@@ -186,8 +191,8 @@ class Invalid(Case):
       # Returns initialized class reference.
     pass
   
-  def __init__(self, name):
-    Case.__init__(self, name)
+  def __init__(self, case):
+    Case.__init__(self, case)
 
   def resolve(self, verdict):
     pass
@@ -196,7 +201,7 @@ class Invalid(Case):
     pass
   
   def report(self, type="name"):
-    return self.name
+    return Case.report(self, type)
 
 class Attorney:
   

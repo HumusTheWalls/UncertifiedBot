@@ -18,6 +18,7 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
+# Set up Invalid case saving
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -33,9 +34,7 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-# Only creates atterneys for first case saved
-# Saving duplicate cases
-# wierdness with load()?
+#
 
 
 # ATTEMPT 1 at verdict
@@ -61,7 +60,6 @@ def run_cycle():
   log += "...logged in.  \n" #Log will attempt to send if error is encountered
   log += "Secreterrifying.  \n"
   case_list = load(config.case_data)
-  print("Case list:\n"+str(case_list))
   if case_list:
     for case in case_list:
       case.certify_attorneys(attorney_list)
@@ -94,10 +92,8 @@ def run_cycle():
        # Handle Invalid Cases Here #
       #############################
     #Valid post --> create case
-    case = None
     # Name must be passed as 1-element list, as per Case.__init__()
     case = Case([post_name])
-    case_list.append(case)
     # find or create attorney records
     log += ("    "+post_name+" is not alone.  \n" if len(case.defense)>0 else "")
     case.set_defense(make_attorneys(roster[0], attorney_list))
@@ -115,6 +111,10 @@ def run_cycle():
     raw_verdict = find_verdict_in(judgements)
     log += "    Verdict: "+str(raw_verdict)+"  \n"
     case.resolve(True if raw_verdict is "Guilty" else False if raw_verdict is "Innocent" else None)
+    if case.verdict is not None:
+      case_list.append(case)
+    else:
+      invalid_list.append(Invalid(case))
   log += "Logging off.  \n"
   log += "...writing changes  \n"
   #Save all changes to Lawyer and Case lists
