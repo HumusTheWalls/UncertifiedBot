@@ -66,7 +66,7 @@ class Case:
     for attorney in attorneys:
       if attorney.__class__.__name__ is not "Attorney":
         raise NameError("Attorney given has not passed the BAR.")
-      self.defense.append(attorney.name)
+      self.defense.append(attorney)
   
   def set_prosecution(self, attorneys):
     ### Takes list of Attorneys
@@ -76,7 +76,7 @@ class Case:
     for attorney in attorneys:
       if attorney.__class__.__name__ is not "Attorney":
         raise NameError("Attorney given has not passed the BAR.")
-      self.prosecution.append(attorney.name)
+      self.prosecution.append(attorney)
   
   def set_judge(self, attorneys):
     ### Takes list of Attorneys
@@ -86,7 +86,7 @@ class Case:
     for attorney in attorneys:
       if attorney.__class__.__name__ is not "Attorney":
         raise NameError("Attorney given has not passed the BAR.")
-      self.judge.append(attorney.name)
+      self.judge.append(attorney)
   
   def set_jury(self, attorneys):
     ### Takes list of Attorneys
@@ -96,7 +96,7 @@ class Case:
     for attorney in attorneys:
       if attorney.__class__.__name__ is not "Attorney":
         raise NameError("Attorney given has not passed the BAR.")
-      self.jury.append(attorney.name)
+      self.jury.append(attorney)
   
   def certify_attorneys(self, archived_attorneys):
     ### Takes all attorneys present at this case
@@ -143,28 +143,28 @@ class Case:
     #DEFENSE
     elif type is "defense":
       for defender in self.defense:
-        string += defender+" & "
+        string += defender.report("name")+" & "
       if self.defense: #removes final " & "
         string = string[:-3]
       return string
     #PROSECUTION
     elif type is "prosecution":
       for prosecutor in self.prosecution:
-        string += prosecutor+" & "
+        string += prosecutor.report("name")+" & "
       if self.prosecution: #removes final " & "
         string = string[:-3]
       return string
     #JUDGE
     elif type is "judge":
       for judger in self.judge:
-        string += judger+" & "
+        string += judger.report("name")+" & "
       if self.judge: #removes final " & "
         string = string[:-3]
       return string
     #JURY
     elif type is "jury":
       for juror in self.jury:
-        string += juror+" & "
+        string += juror.report("name")+" & "
       if self.jury: #removes final " & "
         string = string[:-3]
       return string

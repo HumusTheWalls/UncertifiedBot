@@ -18,7 +18,6 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
-# Set up Invalid case saving
 # Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
@@ -34,8 +33,7 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-# make_attorneys seems to be passing back
-# strings, not Attorneys
+#
 
 
 # ATTEMPT 1 at verdict
@@ -118,7 +116,6 @@ def run_cycle():
     raw_verdict = find_verdict_in(judgements)
     log += "    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n"
     if raw_verdict is not None:
-      print("...resolving.")
       case.resolve(raw_verdict)
       case_list.append(case)
     else:
