@@ -34,7 +34,8 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-#
+# make_attorneys seems to be passing back
+# strings, not Attorneys
 
 
 # ATTEMPT 1 at verdict
@@ -76,21 +77,26 @@ def run_cycle():
     roster = find_actors_in(post)
     #If no defense/prosecution/judge, case is invalid
     if not (roster[0] and roster[1] and roster[2]):
-      log = log[:-3] #removes newline and corresponding spaces
-      log += "...invalid case.  \n"
+      log = log[:-3]+"...invalid case.  \n" #removes newline and corresponding spaces
+      invalid_case = Invalid([post_name])
       #Only display found members
       if roster[0]: #Defense
+        invalid_case.set_defense(make_attorneys(roster[0], attorney_list))
         log += "    --Defense(s)    : {}  \n".format(roster[0])
       if roster[1]: #Prosecution
+        invalid_case.set_prosecution(make_attorneys(roster[1], attorney_list))
         log += "    --Prosecution(s): {}  \n".format(roster[1])
       if roster[2]: #Judge
+        invalid_case.set_judge(make_attorneys(roster[2], attorney_list))
         log += "    --Judge(s)      : {}  \n".format(roster[2])
       if roster[3]: #Jury
+        invalid_case.set_jury(make_attorneys(roster[3], attorney_list))
         log += "    --Jury          : {}  \n".format(roster[3])
-      continue
         #############################
        # Handle Invalid Cases Here #
       #############################
+      invalid_list.append(invalid_case)
+      continue
     #Valid post --> create case
     # Name must be passed as 1-element list, as per Case.__init__()
     case = Case([post_name])
@@ -108,10 +114,12 @@ def run_cycle():
     log += "    Comments:  \n"
     #find all statements from the Judge
     judgements = find_statements_from(roster[2], comments)
+    print("Case Number "+post_name)
     raw_verdict = find_verdict_in(judgements)
-    log += "    Verdict: "+str(raw_verdict)+"  \n"
-    case.resolve(True if raw_verdict is "Guilty" else False if raw_verdict is "Innocent" else None)
-    if case.verdict is not None:
+    log += "    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n"
+    if raw_verdict is not None:
+      print("...resolving.")
+      case.resolve(raw_verdict)
       case_list.append(case)
     else:
       invalid_list.append(Invalid(case))
@@ -248,15 +256,18 @@ def make_attorneys(names, attorneys):
     # Checks for existing record
     # before creating a new attorney
   new_attorneys = []
+  # Strings containing names of attorneys
   for name in names:
     newAttorney = None
+    # List of Attorney classes
     for attorney in attorneys:
-      if name is attorney.name:
+      if name == attorney.report("name"):
         newAttorney = attorney
         break
     if newAttorney is None:
       # Name must be passed as 1-element list, as per Attorney.__init__()
       newAttorney = Attorney([name])
+      attorneys.append(newAttorney)
     new_attorneys.append(newAttorney)
   return new_attorneys
 
@@ -271,19 +282,18 @@ def find_verdict_in(judgements):
     raw_matches = regex.findall(re_verdict, judgement)
     for match in raw_matches:
       if match:
+        print("Found match: \""+str(match)+"\"")
         matches.append(match)
   for match in matches:
-    if match.lower() is "guilty":
+    if match.lower() == "guilty":
       guilt_meter += 1
-      print ("<223>: Guilty")
-    if match.lower() is "not guilty":
+    if match.lower() == "not guilty":
       guilt_meter -= 1
-      print ("<223>: Not Guilty")
-    if match.lower() is "innocent":
+    if match.lower() == "innocent":
       guilt_meter -= 1
-      print ("<223>: Innocent")
   #Innocent until proven guilty
-  return "Oops" if len(matches)==0 else "Guilty" if guilt_meter>0 else "Innocent"
+  print("Guilt Meter: "+str(guilt_meter))
+  return None if len(matches)==0 else True if guilt_meter>0 else False
 
 def save(saveable_list, filename):
   ### Saves list of saveables

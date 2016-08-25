@@ -46,10 +46,9 @@ class Case:
       # editting each participating attorney's case record
       # to include itself. Attorneys store their win/loss records,
       # but do not have control over them internally.
-    if not verdict: #invalid resolution, do not process
-      return
     self.verdict = verdict
     for defender in self.defense:
+      if type(defender) is str: raise NameError("Don't send me these un-classed shits.")
       defender.loses.append(self.name) if verdict else defender.wins.append(self.name)
     for prosecutor in self.prosecution:
       prosecutor.wins.append(self.name) if verdict else prosecutor.loses.append(self.name)
