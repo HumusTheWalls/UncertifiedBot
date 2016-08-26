@@ -164,6 +164,7 @@ class Case:
     #JURY
     elif type is "jury":
       for juror in self.jury:
+        print("Dieses Juror heiBt "+str(juror))
         string += juror.report("name")+" & "
       if self.jury: #removes final " & "
         string = string[:-3]
@@ -228,10 +229,10 @@ class Attorney:
       raise NameError("No valid name passed: "+str(stats[0]))
     self.name = stats[0]
     # Following stats are lists of strings (or at least should be)
-    self.wins = stats[1] if len(stats) > 1 else []
-    self.loses = stats[2] if len(stats) > 2 else []
-    self.judgements = stats[3] if len(stats) > 3 else []
-    self.jury_duty = stats[4] if len(stats) > 4 else []
+    self.wins = filter(None, stats[1]) if len(stats) > 1 else []
+    self.loses = filter(None, stats[2]) if len(stats) > 2 else []
+    self.judgements = filter(None, stats[3]) if len(stats) > 3 else []
+    self.jury_duty = ilter(None, stats[4]) if len(stats) > 4 else []
   
   def report(self, type="name"):
     ### Reports information about attorney

@@ -35,6 +35,19 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
+#Traceback (most recent call last):
+#  File "bot.py", line 404, in <module>
+#    run_cycle()
+#  File "bot.py", line 74, in run_cycle
+#    case_list = load(config.case_data)
+#  File "bot.py", line 380, in load
+#    print(case.report("file"))
+#  File "/home/humusthewalls/UncertifiedBot/Classes.py", line 178, in report
+#    string += self.report("defense")+";"
+#  File "/home/humusthewalls/UncertifiedBot/Classes.py", line 146, in report
+#    string += defender.report("name")+" & "
+#AttributeError: 'str' object has no attribute 'report'
+
 # Working on verdict accuracy:
 # on large cases (3bycnj), bottom comments
 # are ignored - verdict found at bottom
@@ -46,6 +59,12 @@ re_defense = regex.compile(r'(?mi)(?:(?!\A)\G|defen(?:(?:s|c)e|der)).*?\/u\/(\w{
 re_prosecution = regex.compile(r'(?mi)(?:(?!\A)\G|prosecut(?:or|ion)).*?\/u\/(\w{3,20})')
 re_judge = regex.compile(r'(?mi)(?:(?!\A)\G|ju(?:dge|stice)).*?\/u\/(\w{3,20})')
 re_jury = regex.compile(r'(?mi)(?:(?!\A)\G|jur(?:y|or)).*?\/u\/(\w{3,20})')
+
+# FLAGS
+flag_clean = False # used to delete existing data before run
+flag_manual = False # used to check a single case --UNIMPLEMENTED--
+flag_recheck = False # used to check list of invalid cases --UNIMPLEMENTED--
+flag_quick = False # used to run only first [config.batch_size] on top of all
 
 log = ""
 attorney_list = []
@@ -61,6 +80,9 @@ def run_cycle():
   log += "Logging in to /u/UncertifiedBot.  \n"
   bot = login()
   log += "...logged in.  \n" #Log will attempt to send if error is encountered
+  if flag_clean:
+    log += "...deleting old data.  \n"
+    delete_data()
   log += "Secreterrifying.  \n"
   case_list = load(config.case_data)
   if case_list:
@@ -115,9 +137,9 @@ def run_cycle():
     log += "    --Jury          : {}  \n".format(case.report("jury"))
     comments = fetch_comments_from(post)
     log += "    Comments:  \n"
+    print("Case Number "+post_name)
     #find all statements from the Judge
     judgements = find_statements_from(roster[2], comments)
-    print("Case Number "+post_name)
     raw_verdict = find_verdict_in(judgements)
     log += "    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n"
     if raw_verdict is not None:
@@ -193,8 +215,10 @@ def fetch_posts(bot):
     # Amount of posts based on config
     # Type of sorting will be based on config
     # once I figured out the syntax for the call
-  subreddit = bot.get_subreddit("KarmaCourt")
-  return praw.helpers.submissions_between(bot, "KarmaCourt", newest_first=False)
+  if flag_quick:
+    subreddit = bot.get_subreddit("KarmaCourt")
+    return subreddit.get_top_from_all(limit=config.batch_size)
+  return praw.helpers.submissions_between(bot, "KarmaCourt", newest_first=False, verbosity=0)
   
 def case_exists(name, cases):
   for case in cases:
@@ -343,8 +367,11 @@ def load(filename):
         if Case.__name__ in lines[0]:
           for line in lines[1:-1]:
             case_info = line[:-1].split(';')
+            print("Case info: "+str(case_info))
             for i in range(2,7): # 2-7 are all potential lists separated by ' & '
               case_info[i] = case_info[i].split(' & ')
+              case_info[i] = list(filter(None, case_info[i])) # remove empty strings from lists, preserving lists
+            print("After filter: "+str(case_info))
             try:
               Case.make(case_info, loaded)
             except InitError as ie:
@@ -368,17 +395,28 @@ def load(filename):
 
 if __name__ == "__main__":
   try:
-    if len(sys.argv) is 1:
+    flag_num = 0
+    flags = sys.argv[1:]
+    for flag in flags:
+      if flag == "clean":
+        flag_clean = True
+        flag_num += 1
+        continue
+      if flag == "check":
+        flag_manual = True
+        flag_num += 1
+        continue
+      if flag == "retry":
+        flag_recheck = True
+        flag_num += 1
+        continue
+      if flag == "quick":
+        flag_quick = True
+        flag_num += 1
+    if flag_num is len(flags):
       run_cycle()
-    elif sys.argv[1] == "delete":
-      delete_data()
-      run_cycle()
-    elif sys.argv[1] is "check":
-      manual_run()
-    elif sys.argv[1] is "retry":
-      recheck()
     else:
-      print ("\""+sys.argv[1]+"\" is not a valid argument.")
+      print("Invalid argument[s] passed: "+str(len(flags))+" passed, "+str(flag_num)+" used.")
   except KeyboardInterrupt as e:
     #flush log and exit
     print (log)
