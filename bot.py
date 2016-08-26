@@ -4,6 +4,8 @@ import sys
 import os
 import regex #Best regex tester for indev package: www.regex101.com
 
+from itertools import tee
+
 import config
  
 # No need to be explicit...
@@ -33,7 +35,9 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-#
+# Working on verdict accuracy:
+# on large cases (3bycnj), bottom comments
+# are ignored - verdict found at bottom
 
 
 # ATTEMPT 1 at verdict
@@ -63,7 +67,8 @@ def run_cycle():
     for case in case_list:
       case.certify_attorneys(attorney_list)
   log += "...fetching posts  \n"
-  posts = fetch_posts(bot)
+  posts, post_count = tee(fetch_posts(bot))
+  log = log[:-12]+"ed "+str(gen_len(post_count))+" posts.  \n"
   for post in posts:
     #Form case name in format: [year]KCC-[month]-[fullname]
     post_date = time.strftime("%D", time.localtime(int(post.created_utc)))
@@ -189,13 +194,17 @@ def fetch_posts(bot):
     # Type of sorting will be based on config
     # once I figured out the syntax for the call
   subreddit = bot.get_subreddit("KarmaCourt")
-  return subreddit.get_top_from_all(limit=config.batch_size)
+  return praw.helpers.submissions_between(bot, "KarmaCourt", newest_first=False)
   
 def case_exists(name, cases):
   for case in cases:
     if name is case.report("name"):
       return True
   return False
+
+# LIterally only used for debugging atm
+def gen_len(generator):
+  return sum(1 for _ in generator)
 
 def fetch_comments_from(submission):
   ### Returns a flattened tree of comments
@@ -245,6 +254,7 @@ def find_statements_from(actors, stage):
   str_statements = []
   for statement in statements:
     str_statements.append(statement.body)
+  print("Found "+str(len(str_statements))+" judicial statements.")
   return str_statements
 
 def make_attorneys(names, attorneys):
@@ -274,6 +284,9 @@ def find_verdict_in(judgements):
     # based on regex defined above
     # regex matches can be [guilty, not guilty, innocent]
   matches = []
+  # Guilt Meter is a temporary measure of
+  # overall guiltiness until charge-based
+  # verdicts get implemented.
   guilt_meter = 0
   for judgement in judgements:
     raw_matches = regex.findall(re_verdict, judgement)
@@ -284,9 +297,8 @@ def find_verdict_in(judgements):
   for match in matches:
     if match.lower() == "guilty":
       guilt_meter += 1
-    if match.lower() == "not guilty":
-      guilt_meter -= 1
-    if match.lower() == "innocent":
+    if (match.lower() == "not guilty" or
+        match.lower() == "innocent"):
       guilt_meter -= 1
   #Innocent until proven guilty
   print("Guilt Meter: "+str(guilt_meter))
