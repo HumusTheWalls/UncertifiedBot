@@ -337,6 +337,7 @@ def save(saveable_list, filename):
   try:
     with open(filename, 'w') as file:
       if saveable_list is not None and len(saveable_list) > 0:
+        saveable_list.sort()
         file.write(saveable_list[0].__class__.__name__+"\n")
         for item in saveable_list:
           file.write(item.report("file"))

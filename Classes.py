@@ -41,6 +41,9 @@ class Case:
     else:
       raise NameError(str(data[0]))
   
+  def __lt__(self, other):
+    return self.name < other.name
+  
   def resolve(self, verdict):
     ### Processes the verdict of the case forcefully by
       # editting each participating attorney's case record
@@ -233,6 +236,9 @@ class Attorney:
     self.loses = filter(None, stats[2]) if len(stats) > 2 else []
     self.judgements = filter(None, stats[3]) if len(stats) > 3 else []
     self.jury_duty = ilter(None, stats[4]) if len(stats) > 4 else []
+  
+  def __lt__(self, other):
+    return self.name < other.name
   
   def report(self, type="name"):
     ### Reports information about attorney
