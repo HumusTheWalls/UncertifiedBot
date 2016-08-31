@@ -48,6 +48,8 @@ simplefilter("ignore", ResourceWarning)
 #    string += defender.report("name")+" & "
 #AttributeError: 'str' object has no attribute 'report'
 
+# Certify Attorneys doesn't update case records
+
 # Working on verdict accuracy:
 # on large cases (3bycnj), bottom comments
 # are ignored - verdict found at bottom
@@ -65,58 +67,60 @@ flag_clean = False # used to delete existing data before run
 flag_manual = False # used to check a single case --UNIMPLEMENTED--
 flag_recheck = False # used to check list of invalid cases --UNIMPLEMENTED--
 flag_quick = False # used to run only first [config.batch_size] on top of all
+flag_quiet = False # reduces log() output to terminal
 
-log = ""
+log_string = ""
 attorney_list = []
 case_list = []
 invalid_list = []
 
 def run_cycle():
-  global log
   global attorney_list
   global case_list
   global invalid_list
-  log += "Running with sub-arguments {}  \n".format(sys.argv[1:])
-  log += "Logging in to /u/UncertifiedBot.  \n"
+  log("Running with sub-arguments {}  \n".format(sys.argv[1:]))
+  log("Logging in to /u/UncertifiedBot.  \n")
   bot = login()
-  log += "...logged in.  \n" #Log will attempt to send if error is encountered
+  log("...logged in.  \n",verbose=False) #Log will attempt to send if error is encountered
   if flag_clean:
-    log += "...deleting old data.  \n"
+    log("...deleting old data.  \n",verbose=False)
     delete_data()
-  log += "Secreterrifying.  \n"
+  log("Secreterrifying.  \n")
   case_list = load(config.case_data)
   if case_list:
+    log("...loading cases.  \n")
     for case in case_list:
+      log("    - "+str(case.report("name")))
       case.certify_attorneys(attorney_list)
-  log += "...fetching posts  \n"
+  log("...fetching posts  \n")
   posts, post_count = tee(fetch_posts(bot))
-  log = log[:-12]+"ed "+str(gen_len(post_count))+" posts.  \n"
+  log("ed "+str(gen_len(post_count))+" posts.  \n",char_end=-12,verbose=False)
   for post in posts:
     #Form case name in format: [year]KCC-[month]-[fullname]
     post_date = time.strftime("%D", time.localtime(int(post.created_utc)))
     post_name = "{1}KCC-{2}-{0}".format(post.short_link[15:],post_date[6:],post_date[:2])
-    log += "   Post [{0}]({1})  \n".format(post_name,post.short_link)
+    log("   Post [{0}]({1})  \n".format(post_name,post.short_link))
     # If case already in case list, skip case
     if case_exists(post_name, case_list):
       continue
     roster = find_actors_in(post)
     #If no defense/prosecution/judge, case is invalid
     if not (roster[0] and roster[1] and roster[2]):
-      log = log[:-3]+"...invalid case.  \n" #removes newline and corresponding spaces
+      log("...invalid case.  \n", char_end=-3) #removes newline and corresponding spaces
       invalid_case = Invalid([post_name])
       #Only display found members
       if roster[0]: #Defense
         invalid_case.set_defense(make_attorneys(roster[0], attorney_list))
-        log += "    --Defense(s)    : {}  \n".format(roster[0])
+        log("    --Defense(s)    : {}  \n".format(roster[0]),verbose=False)
       if roster[1]: #Prosecution
         invalid_case.set_prosecution(make_attorneys(roster[1], attorney_list))
-        log += "    --Prosecution(s): {}  \n".format(roster[1])
+        log("    --Prosecution(s): {}  \n".format(roster[1]),verbose=False)
       if roster[2]: #Judge
         invalid_case.set_judge(make_attorneys(roster[2], attorney_list))
-        log += "    --Judge(s)      : {}  \n".format(roster[2])
+        log("    --Judge(s)      : {}  \n".format(roster[2]),verbose=False)
       if roster[3]: #Jury
         invalid_case.set_jury(make_attorneys(roster[3], attorney_list))
-        log += "    --Jury          : {}  \n".format(roster[3])
+        log("    --Jury          : {}  \n".format(roster[3]),verbose=False)
         #############################
        # Handle Invalid Cases Here #
       #############################
@@ -126,36 +130,33 @@ def run_cycle():
     # Name must be passed as 1-element list, as per Case.__init__()
     case = Case([post_name])
     # find or create attorney records
-    log += ("    "+post_name+" is not alone.  \n" if len(case.defense)>0 else "")
     case.set_defense(make_attorneys(roster[0], attorney_list))
     case.set_prosecution(make_attorneys(roster[1], attorney_list))
     case.set_judge(make_attorneys(roster[2], attorney_list))
     case.set_jury(make_attorneys(roster[3], attorney_list))
-    log += "    --Defense(s)    : {}  \n".format(case.report("defense"))
-    log += "    --Prosecution(s): {}  \n".format(case.report("prosecution"))
-    log += "    --Judge(s)      : {}  \n".format(case.report("judge"))
-    log += "    --Jury          : {}  \n".format(case.report("jury"))
+    log("    --Defense(s)    : {}  \n".format(case.report("defense")),verbose=False)
+    log("    --Prosecution(s): {}  \n".format(case.report("prosecution")),verbose=False)
+    log("    --Judge(s)      : {}  \n".format(case.report("judge")),verbose=False)
+    log("    --Jury          : {}  \n".format(case.report("jury")),verbose=False)
     comments = fetch_comments_from(post)
-    log += "    Comments:  \n"
-    print("Case Number "+post_name)
     #find all statements from the Judge
     judgements = find_statements_from(roster[2], comments)
+    log("    Judicial Statements: "+str(len(judgements))+"  \n",verbose=False)
     raw_verdict = find_verdict_in(judgements)
-    log += "    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n"
+    log("    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n",verbose=False)
     if raw_verdict is not None:
       case.resolve(raw_verdict)
       case_list.append(case)
     else:
       invalid_list.append(Invalid(case))
-  log += "Logging off.  \n"
-  log += "...writing changes  \n"
+  log("Logging off.  \n")
+  log("...writing changes  \n",verbose=False)
   #Save all changes to Lawyer and Case lists
   save(attorney_list, config.attorney_data)
   save(case_list, config.case_data)
   save(invalid_list, config.invalid_data)
-  log += "...sending logs  \n"
+  log("...sending logs  \n",verbose=False)
   logout(bot)
-  log = ""
 
 def manual_run():
   pass
@@ -197,18 +198,17 @@ def logout(bot):
     # reddit ("logs out")
     # And handles reporting the bot's actions
     # to the designated supervisor
-  global log
   end_time = time.asctime(time.localtime(time.time()))
   bot.clear_authentication()
   # Currently not sending supervisor
   # messages until bot is functional
   #bot.send_message(config.supervisor,"Session: "+end_time, log)
+  global log_string
   try:
     with open(config.log_file, "w") as file:
-      file.write(log)
+      file.write(log_string)
   except IOError as IOE:
     print ("Error saving log to "+config.log_file+", flushing log to terminal.")
-    print (log)
 
 def fetch_posts(bot):
   ### Requests list of posts from reddit
@@ -218,7 +218,7 @@ def fetch_posts(bot):
   if flag_quick:
     subreddit = bot.get_subreddit("KarmaCourt")
     return subreddit.get_top_from_all(limit=config.batch_size)
-  return praw.helpers.submissions_between(bot, "KarmaCourt", newest_first=False, verbosity=0)
+  return praw.helpers.submissions_between(bot, "KarmaCourt", newest_first=False, verbosity=1)
   
 def case_exists(name, cases):
   for case in cases:
@@ -236,7 +236,7 @@ def fetch_comments_from(submission):
     # Ignores all comments heavily nested in trees.
     # API calls are WAY too long to wait for on large-scale runs.
     # ...may add optional override later...
-  submission.replace_more_comments(limit=0)
+  submission.replace_more_comments(limit=0, threshold=0)
   return praw.helpers.flatten_tree(submission.comments)
 
 def find_actors_in(submission):
@@ -278,7 +278,6 @@ def find_statements_from(actors, stage):
   str_statements = []
   for statement in statements:
     str_statements.append(statement.body)
-  print("Found "+str(len(str_statements))+" judicial statements.")
   return str_statements
 
 def make_attorneys(names, attorneys):
@@ -344,8 +343,7 @@ def save(saveable_list, filename):
       else:
         raise IOError() #Hackish: no saveable data to write.
   except IOError as IOE:
-    global log
-    log += "Error: "+filename+" could not be saved. No data was recorded.  \n"
+    log("Error: "+filename+" could not be saved. No data was recorded.  \n")
   return
 
 def load(filename):
@@ -368,11 +366,9 @@ def load(filename):
         if Case.__name__ in lines[0]:
           for line in lines[1:-1]:
             case_info = line[:-1].split(';')
-            print("Case info: "+str(case_info))
             for i in range(2,7): # 2-7 are all potential lists separated by ' & '
               case_info[i] = case_info[i].split(' & ')
               case_info[i] = list(filter(None, case_info[i])) # remove empty strings from lists, preserving lists
-            print("After filter: "+str(case_info))
             try:
               Case.make(case_info, loaded)
             except InitError as ie:
@@ -389,10 +385,23 @@ def load(filename):
       else:
         raise InitError("No class type was provided.")
   except (InitError, FileNotFoundError) as oops:
-    log += "Warning: "+filename+" could not be loaded: "+oops.strerror+"  \n Using empty list instead.  \n"
-  for case in loaded:
-    print(case.report("file"))
+    log("Warning: "+filename+" could not be loaded: "+oops.strerror+"  \n Using empty list instead.  \n")
   return loaded
+
+def log(string, char_begin=0, char_end=0, verbose=True):
+  # Function to write changes to log
+  # applies changes to log file
+  # as well as to console
+  global log_string
+  global flag_quiet
+  if char_begin > 0:
+    log_string = log_string[char_begin:]
+  if char_end < 0:
+    log_string = log_string[:char_end]
+  log_string += string
+  if flag_quiet and not verbose:
+    return
+  print(string.rstrip(), flush=True)
 
 if __name__ == "__main__":
   try:
@@ -414,14 +423,16 @@ if __name__ == "__main__":
       if flag == "quick":
         flag_quick = True
         flag_num += 1
+        continue
+      if flag == "quiet":
+        flag_quiet = True
+        flag_num += 1
     if flag_num is len(flags):
       run_cycle()
     else:
       print("Invalid argument[s] passed: "+str(len(flags))+" passed, "+str(flag_num)+" used.")
   except KeyboardInterrupt as e:
     #flush log and exit
-    print (log)
     print ("~~~Keyboard Interrupt~~~")
   except: #Always print log for general location in loop exception occurred in.
-    print (log)
     raise

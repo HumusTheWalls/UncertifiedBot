@@ -24,11 +24,11 @@ class Case:
     if type(data) is list:
       self.name = data[0]
       self.verdict = data[1] if len(data) > 1 else None
-      self.charges = data[2] if len(data) > 2 else []
-      self.jury = data[3] if len(data) > 3 else []
-      self.defense = data[4] if len(data) > 4 else []
-      self.prosecution = data[5] if len(data) > 5 else []
-      self.judge = data[6] if len(data) > 6 else []
+      self.charges = list(filter(None, data[2])) if len(data) > 2 else []
+      self.jury = list(filter(None, data[3])) if len(data) > 3 else []
+      self.defense = list(filter(None, data[4])) if len(data) > 4 else []
+      self.prosecution = list(filter(None, data[5])) if len(data) > 5 else []
+      self.judge = list(filter(None, data[6])) if len(data) > 6 else []
     #Cloning used for Invalid initialization
     elif isinstance(data, Case):
       self.name = data.name
@@ -108,19 +108,17 @@ class Case:
       # in the attorney_data file from config
       # Main purpose of this function
       # is for file-loaded cases
-    attorneys = []
-    attorneys.extend(self.defense)
-    attorneys.extend(self.prosecution)
-    attorneys.extend(self.judge)
-    attorneys.extend(self.jury)
+    self.defense = Case.make_attorneys(self.defense, archived_attorneys)
+    self.prosecution = Case.make_attorneys(self.prosecution, archived_attorneys)
+    self.judge = Case.make_attorneys(self.judge, archived_attorneys)
+    self.jury = Case.make_attorneys(self.jury, archived_attorneys)
     
-    for attorney in archived_attorneys:
-      if attorney.name in attorneys:
-        attorneys.remove(attorney.name) #attorney already exists
-    # Remove all empty attorneys (from unfilled categories like "jury")
-    attorneys = filter(None, attorneys)
-    for name in attorneys:
-      Attorney.make([name], archived_attorneys)
+  @staticmethod
+  def make_attorneys(names, attorneys):
+    certified_attorneys = []
+    for name in names:
+      certified_attorneys.append(Attorney.make([name], attorneys))
+    return certified_attorneys
   
   def report(self, type="name"):
     ### Returns information about the case
@@ -167,7 +165,6 @@ class Case:
     #JURY
     elif type is "jury":
       for juror in self.jury:
-        print("Dieses Juror heiBt "+str(juror))
         string += juror.report("name")+" & "
       if self.jury: #removes final " & "
         string = string[:-3]
@@ -215,11 +212,14 @@ class Attorney:
       # as defined by __init__. No error checking here.
       # Throws InitError if any error occurs.
       # Returns initialized class reference.
+    attorney = None
     try:
-      attorney_list.append(Attorney(data))
+      attorney = Attorney(data)
+      attorney_list.append(attorney)
     except NameError as ne:
       # Raise new error to give better description of issue
       raise InitError("Attorney was not created: "+ne.strerror)
+    return attorney
 
   def __init__(self, stats):
     ### Attorney initialization
