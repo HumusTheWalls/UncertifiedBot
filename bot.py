@@ -35,32 +35,23 @@ simplefilter("ignore", ResourceWarning)
   ################
  # LATEST ERROR #
 ################
-#Traceback (most recent call last):
-#  File "bot.py", line 404, in <module>
-#    run_cycle()
-#  File "bot.py", line 74, in run_cycle
-#    case_list = load(config.case_data)
-#  File "bot.py", line 380, in load
-#    print(case.report("file"))
-#  File "/home/humusthewalls/UncertifiedBot/Classes.py", line 178, in report
-#    string += self.report("defense")+";"
-#  File "/home/humusthewalls/UncertifiedBot/Classes.py", line 146, in report
-#    string += defender.report("name")+" & "
-#AttributeError: 'str' object has no attribute 'report'
-
-# Certify Attorneys doesn't update case records
+# Case Exists does not appear to 
+# properly identify cases. Duplicates
+# cases every run.
 
 # Working on verdict accuracy:
+# adjust regex to allow '-', as per (1fv7dz)
+# 
 # on large cases (3bycnj), bottom comments
 # are ignored - verdict found at bottom
 
 
 # ATTEMPT 1 at verdict
-re_verdict = regex.compile(r'((?<!or)(?!or)(?:not\sguilty|innocent)|(?<!or)(?!or\s*)(?<!not\s)guilty)')
-re_defense = regex.compile(r'(?mi)(?:(?!\A)\G|defen(?:(?:s|c)e|der)).*?\/u\/(\w{3,20})')
-re_prosecution = regex.compile(r'(?mi)(?:(?!\A)\G|prosecut(?:or|ion)).*?\/u\/(\w{3,20})')
-re_judge = regex.compile(r'(?mi)(?:(?!\A)\G|ju(?:dge|stice)).*?\/u\/(\w{3,20})')
-re_jury = regex.compile(r'(?mi)(?:(?!\A)\G|jur(?:y|or)).*?\/u\/(\w{3,20})')
+re_verdict = regex.compile(r'(?mi)((?<!or)(?!or)(?:not\sguilty|innocent)|(?<!or)(?!or\s*)(?<!not\s)guilty)')
+re_defense = regex.compile(r'(?mi)(?:(?!\A)\G|defen(?:(?:s|c)e|der)).*?\/u\/([a-zA-Z0-9-_]{3,20})')
+re_prosecution = regex.compile(r'(?mi)(?:(?!\A)\G|prosecut(?:or|ion)).*?\/u\/([a-zA-Z0-9-_]{3,20})')
+re_judge = regex.compile(r'(?mi)(?:(?!\A)\G|ju(?:dge|stice)).*?\/u\/([a-zA-Z0-9-_]{3,20})')
+re_jury = regex.compile(r'(?mi)(?:(?!\A)\G|jur(?:y|or)).*?\/u\/([a-zA-Z0-9-_]{3,20})')
 
 # FLAGS
 flag_clean = False # used to delete existing data before run
@@ -90,7 +81,7 @@ def run_cycle():
   if case_list:
     log("...loading cases.  \n")
     for case in case_list:
-      log("    - "+str(case.report("name")))
+      log("    - "+str(case.report("name"))+"  \n")
       case.certify_attorneys(attorney_list)
   log("...fetching posts  \n")
   posts, post_count = tee(fetch_posts(bot))
