@@ -38,9 +38,6 @@ simplefilter("ignore", ResourceWarning)
 # Case Exists does not appear to 
 # properly identify cases. Duplicates
 # cases every run.
-
-# Working on verdict accuracy:
-# adjust regex to allow '-', as per (1fv7dz)
 # 
 # on large cases (3bycnj), bottom comments
 # are ignored - verdict found at bottom
@@ -213,7 +210,7 @@ def fetch_posts(bot):
   
 def case_exists(name, cases):
   for case in cases:
-    if name is case.report("name"):
+    if name == case.report("name"):
       return True
   return False
 
