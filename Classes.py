@@ -7,11 +7,14 @@ class Case:
       # as defined by __init__. No error checking here.
       # Throws InitError if any error occurs.
       # Returns initialized class reference.
+    new_case = None
     try:
-      case_list.append(Case(data))
+      new_case = Case(data)
+      case_list.append(new_case)
     except NameError as ne:
       # Raise new error to give better description of issue
       raise InitError("Case was not created: "+ne.strerror)
+    return new_case
   
   def __init__(self, data):
     ### Case initialization
@@ -189,7 +192,14 @@ class Invalid(Case):
       # as defined by __init__. No error checking here.
       # Throws InitError if any error occurs.
       # Returns initialized class reference.
-    pass
+    new_invalid = None
+    try:
+      new_invalid = Invalid(data)
+      invalid_list.append(new_invalid)
+    except NameError as ne:
+      # Raise new error to give better description of issue
+      raise InitError("Invalid was not created: "+ne.strerror)
+    return new_invalid
   
   def __init__(self, case):
     Case.__init__(self, case)

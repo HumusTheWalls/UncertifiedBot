@@ -20,27 +20,24 @@ simplefilter("ignore", ResourceWarning)
    #########
   # TO DO #
  #########
-# Work out verdicts (always innocent, matches empty?)
 # Set up conditionals for charge-based verdicts
 # Add regex for Charges
 # Work out charge-based verdicts
-# Set up recording of invalid cases
-# Attempt to send log if error encountered
 # Set up Oauth certification
+# Set up message-sending for runs
 # Add "Manual" checking of certain cases
 # Add "Recheck" run through of invalid cases
 # Add support for jury-polling
-# Flesh out config.py
 
   ################
  # LATEST ERROR #
 ################
-# Case Exists does not appear to 
-# properly identify cases. Duplicates
-# cases every run.
-# 
-# on large cases (3bycnj), bottom comments
-# are ignored - verdict found at bottom
+# Traceback (most recent call last):
+#  File "bot.py", line 438, in <module>
+#    run_cycle()
+#  File "bot.py", line 149, in run_cycle
+#    Invalid(case, (unfixable_list if case_archived(post_date) else unfinished_list))
+#TypeError: __init__() takes 2 positional arguments but 3 were given
 
 
 # ATTEMPT 1 at verdict
@@ -54,18 +51,23 @@ re_jury = regex.compile(r'(?mi)(?:(?!\A)\G|jur(?:y|or)).*?\/u\/([a-zA-Z0-9-_]{3,
 flag_clean = False # used to delete existing data before run
 flag_manual = False # used to check a single case --UNIMPLEMENTED--
 flag_recheck = False # used to check list of invalid cases --UNIMPLEMENTED--
-flag_quick = False # used to run only first [config.batch_size] on top of all
+flag_quick = False # used to run only first [config.batch_size] of 'top' submissions
 flag_quiet = False # reduces log() output to terminal
+}
 
 log_string = ""
 attorney_list = []
 case_list = []
 invalid_list = []
+unfinished_list = []
 
 def run_cycle():
   global attorney_list
   global case_list
   global invalid_list
+  global unfinished_list
+  global unfixable_list
+  global flag_clean
   log("Running with sub-arguments {}  \n".format(sys.argv[1:]))
   log("Logging in to /u/UncertifiedBot.  \n")
   bot = login()
@@ -74,22 +76,31 @@ def run_cycle():
     log("...deleting old data.  \n",verbose=False)
     delete_data()
   log("Secreterrifying.  \n")
+  log("...loading cases.  \n")
   case_list = load(config.case_data)
   if case_list:
-    log("...loading cases.  \n")
     for case in case_list:
       log("    - "+str(case.report("name"))+"  \n")
       case.certify_attorneys(attorney_list)
+  log("...loading unfixables.  \n")
+  unfixable_list = load(config.unfixable_data)
+  # Actively chose not to load attorneys from unfixable list
+  # No reason to create attorneys for cases that will never
+  # be resolved and added to that attorney's record
   log("...fetching posts  \n")
   posts, post_count = tee(fetch_posts(bot))
   log("ed "+str(gen_len(post_count))+" posts.  \n",char_end=-12,verbose=False)
+  
   for post in posts:
     #Form case name in format: [year]KCC-[month]-[fullname]
-    post_date = time.strftime("%D", time.localtime(int(post.created_utc)))
+    post_date = time.strftime("%D", time.localtime(int(post.created_utc))) # yeilds 'MMDDYYYY'
     post_name = "{1}KCC-{2}-{0}".format(post.short_link[15:],post_date[6:],post_date[:2])
     log("   Post [{0}]({1})  \n".format(post_name,post.short_link))
     # If case already in case list, skip case
     if case_exists(post_name, case_list):
+      continue
+    # If case is known to be unfixable, skip case
+    if case_exists(post_name, unfixable_list):
       continue
     roster = find_actors_in(post)
     #If no defense/prosecution/judge, case is invalid
@@ -130,19 +141,27 @@ def run_cycle():
     #find all statements from the Judge
     judgements = find_statements_from(roster[2], comments)
     log("    Judicial Statements: "+str(len(judgements))+"  \n",verbose=False)
+    if len(judgements) is 0:
+      log("    Judge not present.  \n")
+      # Save to be checked later, or lable 'unfixable' if case is archived
+      Invalid.make(case, (unfixable_list if case_archived(post_date) else unfinished_list))
+      continue
     raw_verdict = find_verdict_in(judgements)
-    log("    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n",verbose=False)
+    log("    Verdict: "+("Oops" if raw_verdict is None else "Guilty" if raw_verdict is True else "Innocent")+"  \n")
     if raw_verdict is not None:
       case.resolve(raw_verdict)
       case_list.append(case)
     else:
-      invalid_list.append(Invalid(case))
+      # Case is unfixable if archived, otherwise just unfinished
+      Invalid.make(case, (unfixable_list if case_archived(post_date) else unfinished_list))
   log("Logging off.  \n")
   log("...writing changes  \n",verbose=False)
   #Save all changes to Lawyer and Case lists
   save(attorney_list, config.attorney_data)
   save(case_list, config.case_data)
   save(invalid_list, config.invalid_data)
+  save(unfinished_list, config.unfinished_data)
+  save(unfixable_list, config.unfixable_data)
   log("...sending logs  \n",verbose=False)
   logout(bot)
 
@@ -165,6 +184,14 @@ def delete_data():
     pass
   try:
     os.remove(config.invalid_data)
+  except FileNotFoundError as fnfe:
+    pass
+  try:
+    os.remove(config.unfinished_data)
+  except FileNotFoundError as fnfe:
+    pass
+  try:
+    os.remove(config.unfixable_data)
   except FileNotFoundError as fnfe:
     pass
   try:
@@ -196,13 +223,15 @@ def logout(bot):
     with open(config.log_file, "w") as file:
       file.write(log_string)
   except IOError as IOE:
-    print ("Error saving log to "+config.log_file+", flushing log to terminal.")
+    print("Error saving log to "+config.log_file+", flushing log to terminal.")
+    print(log_string)
 
 def fetch_posts(bot):
   ### Requests list of posts from reddit
     # Amount of posts based on config
     # Type of sorting will be based on config
     # once I figured out the syntax for the call
+    global flag_quick
   if flag_quick:
     subreddit = bot.get_subreddit("KarmaCourt")
     return subreddit.get_top_from_all(limit=config.batch_size)
@@ -214,6 +243,13 @@ def case_exists(name, cases):
       return True
   return False
 
+def case_archived(date):
+  # Takes date as "MM/DD/YYYY"
+  # and returns whether
+  # it was >= 6 months old
+  six_months = 15552000
+  return ((time.time() - time.mktime(time.strptime(date, "%m/%d/%y"))) > six_months)
+
 # LIterally only used for debugging atm
 def gen_len(generator):
   return sum(1 for _ in generator)
@@ -224,7 +260,7 @@ def fetch_comments_from(submission):
     # Ignores all comments heavily nested in trees.
     # API calls are WAY too long to wait for on large-scale runs.
     # ...may add optional override later...
-  submission.replace_more_comments(limit=0, threshold=0)
+  submission.replace_more_comments(limit=None, threshold=0)
   return praw.helpers.flatten_tree(submission.comments)
 
 def find_actors_in(submission):
@@ -259,7 +295,7 @@ def find_statements_from(actors, stage):
   statements = []
   for actor in actors:
     for statement in stage:
-      if statement.author: #More_comment objects have no author
+      if statement.author: #Deleted and Removed comments have no author
         if statement.author.name.lower() == actor: #actors stored as lower-case
           statements.append(statement)
   #Encode statements to str to prevent unicode errors
@@ -303,7 +339,6 @@ def find_verdict_in(judgements):
     raw_matches = regex.findall(re_verdict, judgement)
     for match in raw_matches:
       if match:
-        print("Found match: \""+str(match)+"\"")
         matches.append(match)
   for match in matches:
     if match.lower() == "guilty":
@@ -312,7 +347,6 @@ def find_verdict_in(judgements):
         match.lower() == "innocent"):
       guilt_meter -= 1
   #Innocent until proven guilty
-  print("Guilt Meter: "+str(guilt_meter))
   return None if len(matches)==0 else True if guilt_meter>0 else False
 
 def save(saveable_list, filename):
@@ -355,19 +389,20 @@ def load(filename):
           for line in lines[1:-1]:
             case_info = line[:-1].split(';')
             for i in range(2,7): # 2-7 are all potential lists separated by ' & '
-              case_info[i] = case_info[i].split(' & ')
-              case_info[i] = list(filter(None, case_info[i])) # remove empty strings from lists, preserving lists
+              case_info[i] = list(filter(None, case_info[i].split(' & '))) # remove empty strings from lists, preserving lists
             try:
               Case.make(case_info, loaded)
             except InitError as ie:
-              log += ie.strerror+"  \n"
-        elif Invalid.__name__ in lines[0]: # <-- turned this into a class. Still unplanned
+              log(ie.strerror+"  \n")
+        elif Invalid.__name__ in lines[0]:
           for line in lines[1:]:
             invalid_info = line[:-1].split(';')
+            for i in range(2,7): # invalids are subsets of normal case files
+              invalid_info[i] = list(filter(None, invalid_info[i].split(' & ')))
             try:
-              loaded.append(Invalid.make(invalid_info, invalid_list))
+              Invalid.make(invalid_info, loaded)
             except InitError as ie:
-              log += ie.strerror+"  \n"
+              log(ie.strerror+"  \n")
         else:
           raise InitError("No valid class to load.")
       else:
